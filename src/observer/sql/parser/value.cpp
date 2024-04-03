@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <sstream>
+#include <iomanip>
 #include "sql/parser/value.h"
 #include "storage/field/field.h"
 #include "common/log/log.h"
@@ -55,7 +56,6 @@ Value::Value(bool val)
 
 Value::Value(const char *s, int len /*= 0*/)
 {
-  //std::cout<<"here2\n";
   set_string(s, len);
 }
 
@@ -84,8 +84,7 @@ Value::Value(const char *date, int len, int flag)
   }
   val=year*10000+month*100+day;
   set_date(val);
-  //std::cout<<"here\n";
-}//lydadd
+}
 
 void Value::set_data(char *data, int length)
 {
@@ -205,12 +204,8 @@ std::string Value::to_string() const
       os << str_value_;
     } break;
     case DATES: {
-      int year=num_value_.date_value_/10000,mounth=(num_value_.date_value_/100)%100,day=num_value_.date_value_%100;
-      os << year<<"-";
-      if(mounth<10) os<<0;
-      os<<mounth<<"-";
-      if(day<10) os<<0;
-      os<<day;
+      int year=num_value_.date_value_/10000,month=(num_value_.date_value_/100)%100,day=num_value_.date_value_%100;
+      os<<year<<"-"<<std::setw(2)<<std::setfill('0')<<month<<"-"<<std::setw(2)<<std::setfill('0')<<day;
     } break;    
     default: {
       LOG_WARN("unsupported attr type: %d", attr_type_);
@@ -286,7 +281,7 @@ int Value::get_int() const
 
 float Value::get_float() const
 {
-  switch (attr_type_) {
+   switch (attr_type_) {
     case CHARS: {
       try {
         return std::stof(str_value_);
@@ -331,7 +326,6 @@ bool Value::get_boolean() const
         if (int_val != 0) {
           return true;
         }
-
         return !str_value_.empty();
       } catch (std::exception const &ex) {
         LOG_TRACE("failed to convert string to float or integer. s=%s, ex=%s", str_value_.c_str(), ex.what());
@@ -385,4 +379,18 @@ int Value::get_date() const//lydadd  waiting working
     }
   }
   return 0;
+}
+
+bool Value::check_date() const
+{
+  //如需修改年份范围，务必修改闰年判断
+  if(attr_type_!=DATES) return 1;
+  int val=get_date();
+  int year=val/10000,month=(val/100)%100,day=val%100;
+  if(val<19700101||val>20380228) return 0;
+  if(month<1||month>12) return 0;
+  int month_to_day[13]={0,31,29,31,30,31,30,31,31,30,31,30,31};
+  if(day<0||day>month_to_day[month]) return 0;
+  if(month==2&&day==29&&year%4!=0)return 0;
+  return 1;
 }

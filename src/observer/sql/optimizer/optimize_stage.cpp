@@ -60,7 +60,6 @@ RC OptimizeStage::handle_request(SQLStageEvent *sql_event)
     LOG_WARN("failed to generate physical plan. rc=%s", strrc(rc));
     return rc;
   }
-
   sql_event->set_operator(std::move(physical_operator));
 
   return rc;

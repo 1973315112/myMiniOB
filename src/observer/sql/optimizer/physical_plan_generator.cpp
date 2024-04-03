@@ -32,6 +32,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/join_physical_operator.h"
 #include "sql/operator/calc_logical_operator.h"
 #include "sql/operator/calc_physical_operator.h"
+#include "sql/operator/aggregate_logical_operator.h"
+#include "sql/operator/aggregate_physical_operator.h"
 #include "sql/expr/expression.h"
 #include "common/log/log.h"
 
@@ -73,6 +75,10 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
     case LogicalOperatorType::JOIN: {
       return create_plan(static_cast<JoinLogicalOperator &>(logical_operator), oper);
     } break;
+
+    case LogicalOperatorType::AGGREGATE: {
+      return create_plan(static_cast<AggregateLogicalOperator &>(logical_operator), oper);
+    } break; 
 
     default: {
       return RC::INVALID_ARGUMENT;
@@ -284,6 +290,41 @@ RC PhysicalPlanGenerator::create_plan(JoinLogicalOperator &join_oper, unique_ptr
   return rc;
 }
 
+
+
+RC PhysicalPlanGenerator::create_plan(AggregateLogicalOperator &aggregate_oper, unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = aggregate_oper.children();
+
+  unique_ptr<PhysicalOperator> child_physical_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc = create(*child_oper, child_physical_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  oper = unique_ptr<PhysicalOperator>(new AggregatePhysicalOperator());
+  
+  std::vector<Field> field=aggregate_oper.field();
+  for(int i=0;field.empty()==0&&i<field.size();i++)
+  {
+    oper->add_aggregation(field[i].aggregation());
+  }
+
+  if (child_physical_oper) {
+    oper->add_child(std::move(child_physical_oper));
+  }
+
+
+    
+  return rc;
+}
+
 RC PhysicalPlanGenerator::create_plan(CalcLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper)
 {
   RC rc = RC::SUCCESS;
@@ -291,4 +332,3 @@ RC PhysicalPlanGenerator::create_plan(CalcLogicalOperator &logical_oper, std::un
   oper.reset(calc_oper);
   return rc;
 }
-

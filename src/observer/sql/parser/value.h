@@ -87,6 +87,9 @@ public:
     return attr_type_;
   }
 
+  bool check_date() const;
+
+
 public:
   /**
    * 获取对应的值

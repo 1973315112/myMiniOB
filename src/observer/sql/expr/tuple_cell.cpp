@@ -19,6 +19,45 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/comparator.h"
 #include "common/lang/string.h"
 
+TupleCellSpec::TupleCellSpec(const char *table_name, const char *field_name, const char *alias,const AggrOp aggr)
+{
+  if (table_name) {
+    table_name_ = table_name;
+  }
+  if (field_name) {
+    field_name_ = field_name;
+  }
+  if(aggr){
+    aggr_=aggr;
+  }
+  if (alias) {
+    alias_ = alias;
+  } 
+  else 
+  {
+    if (table_name_.empty()) 
+    {
+      alias_ = field_name_;
+    } 
+    else 
+    {
+      alias_ = table_name_ + "." + field_name_;
+    }
+  }
+
+  if(aggr_==AggrOp::AGGR_COUNT_ALL) alias_="COUNT(*)";
+  else if(aggr_!=AggrOp::AGGR_NONE)
+  {
+    std::string aggr_repr;
+    if(aggr_==AggrOp::AGGR_SUM) aggr_repr="SUM";
+    else if(aggr_==AggrOp::AGGR_MIN) aggr_repr="MIN";
+    else if(aggr_==AggrOp::AGGR_MAX) aggr_repr="MAX";
+    else if(aggr_==AggrOp::AGGR_AVG) aggr_repr="AVG";
+    else if(aggr_==AggrOp::AGGR_COUNT) aggr_repr="COUNT";
+    alias_=aggr_repr+"("+alias+")";
+  }
+}
+
 TupleCellSpec::TupleCellSpec(const char *table_name, const char *field_name, const char *alias)
 {
   if (table_name) {
@@ -38,9 +77,29 @@ TupleCellSpec::TupleCellSpec(const char *table_name, const char *field_name, con
   }
 }
 
-TupleCellSpec::TupleCellSpec(const char *alias)
+/*TupleCellSpec::TupleCellSpec(const char *alias)
 {
   if (alias) {
     alias_ = alias;
   }
+}*/
+
+TupleCellSpec::TupleCellSpec(const char *alias,const AggrOp aggr)
+{
+  aggr_=aggr;
+  if (alias) {
+    alias_ = alias;
+    if(aggr_==AggrOp::AGGR_COUNT_ALL) alias_="COUNT(*)";
+    else if(aggr_!=AggrOp::AGGR_NONE)
+    {
+      std::string aggr_repr;
+      if(aggr_==AggrOp::AGGR_SUM) aggr_repr="SUM";
+      else if(aggr_==AggrOp::AGGR_MIN) aggr_repr="MIN";
+      else if(aggr_==AggrOp::AGGR_MAX) aggr_repr="MAX";
+      else if(aggr_==AggrOp::AGGR_AVG) aggr_repr="AVG";
+      else if(aggr_==AggrOp::AGGR_COUNT) aggr_repr="COUNT";
+      alias_=aggr_repr+"("+alias+")";
+    }      
+  }
+
 }

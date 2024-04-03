@@ -104,6 +104,11 @@ VALUES                                  RETURN_TOKEN(VALUES);
 DELETE                                  RETURN_TOKEN(DELETE);
 UPDATE                                  RETURN_TOKEN(UPDATE);
 SET                                     RETURN_TOKEN(SET);
+SUM                                     RETURN_TOKEN(SUM_F);
+MIN                                     RETURN_TOKEN(MIN_F);
+MAX                                     RETURN_TOKEN(MAX_F);
+AVG                                     RETURN_TOKEN(AVG_F);
+COUNT                                   RETURN_TOKEN(COUNT_F);
 BEGIN                                   RETURN_TOKEN(TRX_BEGIN);
 COMMIT                                  RETURN_TOKEN(TRX_COMMIT);
 ROLLBACK                                RETURN_TOKEN(TRX_ROLLBACK);
@@ -116,7 +121,7 @@ DATA                                    RETURN_TOKEN(DATA);
 INFILE                                  RETURN_TOKEN(INFILE);
 EXPLAIN                                 RETURN_TOKEN(EXPLAIN);
 {ID}                                    yylval->string=strdup(yytext); RETURN_TOKEN(ID);
-{QUOTE}[0-9]+-[0-9]+-[0-9]+{QUOTE}       yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);//lydadd
+{QUOTE}[0-9]+-[0-9]+-[0-9]+{QUOTE}      yylval->string=strdup(yytext); RETURN_TOKEN(DATE_STR);
 "("                                     RETURN_TOKEN(LBRACE);
 ")"                                     RETURN_TOKEN(RBRACE);
 

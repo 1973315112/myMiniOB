@@ -27,12 +27,17 @@ SelectStmt::~SelectStmt()
   }
 }
 
-static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
+static void wildcard_fields(Table *table, std::vector<Field> &field_metas,AggrOp aggregation=AGGR_NONE)
 {
   const TableMeta &table_meta = table->table_meta();
   const int field_num = table_meta.field_num();
   for (int i = table_meta.sys_field_num(); i < field_num; i++) {
-    field_metas.push_back(Field(table, table_meta.field(i)));
+    if(aggregation==AGGR_COUNT_ALL)
+    {
+      field_metas.push_back(Field(table, table_meta.field(i),AGGR_COUNT_ALL));
+      break;
+    }
+    else field_metas.push_back(Field(table, table_meta.field(i),aggregation));
   }
 }
 
@@ -65,40 +70,58 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
-  for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) {
+  for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) 
+  {
     const RelAttrSqlNode &relation_attr = select_sql.attributes[i];
+    AggrOp aggregation_=relation_attr.aggregation;
+    if(relation_attr.valid==0) return RC::INVALID_ARGUMENT;
 
     if (common::is_blank(relation_attr.relation_name.c_str()) &&
-        0 == strcmp(relation_attr.attribute_name.c_str(), "*")) {
-      for (Table *table : tables) {
-        wildcard_fields(table, query_fields);
-      }
-
-    } else if (!common::is_blank(relation_attr.relation_name.c_str())) {
+        0 == strcmp(relation_attr.attribute_name.c_str(), "*")) 
+    {
+      if(aggregation_!=AggrOp::AGGR_COUNT&&aggregation_!=AggrOp::AGGR_NONE) return RC::INVALID_ARGUMENT;
+      if(aggregation_==AggrOp::AGGR_COUNT) aggregation_=AggrOp::AGGR_COUNT_ALL;
+      for (Table *table : tables) 
+      {
+        wildcard_fields(table, query_fields,aggregation_);
+      }        
+    } 
+    else if (!common::is_blank(relation_attr.relation_name.c_str())) 
+    {
       const char *table_name = relation_attr.relation_name.c_str();
       const char *field_name = relation_attr.attribute_name.c_str();
 
-      if (0 == strcmp(table_name, "*")) {
-        if (0 != strcmp(field_name, "*")) {
+      if (0 == strcmp(table_name, "*")) 
+      {
+        if (0 != strcmp(field_name, "*")) 
+        {
           LOG_WARN("invalid field name while table is *. attr=%s", field_name);
           return RC::SCHEMA_FIELD_MISSING;
         }
-        for (Table *table : tables) {
+        for (Table *table : tables) 
+        {
           wildcard_fields(table, query_fields);
         }
-      } else {
+      } 
+      else 
+      {
         auto iter = table_map.find(table_name);
-        if (iter == table_map.end()) {
+        if (iter == table_map.end()) 
+        {
           LOG_WARN("no such table in from list: %s", table_name);
           return RC::SCHEMA_FIELD_MISSING;
         }
 
         Table *table = iter->second;
-        if (0 == strcmp(field_name, "*")) {
+        if (0 == strcmp(field_name, "*")) 
+        {
           wildcard_fields(table, query_fields);
-        } else {
+        } 
+        else 
+        {
           const FieldMeta *field_meta = table->table_meta().field(field_name);
-          if (nullptr == field_meta) {
+          if (nullptr == field_meta) 
+          {
             LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
             return RC::SCHEMA_FIELD_MISSING;
           }
@@ -106,20 +129,27 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
           query_fields.push_back(Field(table, field_meta));
         }
       }
-    } else {
-      if (tables.size() != 1) {
+    } 
+    else 
+    {
+      if (tables.size() != 1) 
+      {
         LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name.c_str());
         return RC::SCHEMA_FIELD_MISSING;
       }
 
       Table *table = tables[0];
       const FieldMeta *field_meta = table->table_meta().field(relation_attr.attribute_name.c_str());
-      if (nullptr == field_meta) {
+      if (nullptr == field_meta) 
+      {
         LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), relation_attr.attribute_name.c_str());
         return RC::SCHEMA_FIELD_MISSING;
       }
 
-      query_fields.push_back(Field(table, field_meta));
+      const char *field_name = relation_attr.attribute_name.c_str();
+      AggrOp aggregation_=relation_attr.aggregation;
+
+      query_fields.push_back(Field(table,field_meta,aggregation_));
     }
   }
 
@@ -150,6 +180,5 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
   stmt = select_stmt;
-  //std::cout<<filter_stmt-><<"\n";
   return RC::SUCCESS;
 }

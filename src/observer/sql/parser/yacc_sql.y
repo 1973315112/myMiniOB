@@ -55,6 +55,11 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 
 //标识tokens
 %token  SEMICOLON
+        SUM_F
+        MIN_F
+        MAX_F
+        AVG_F
+        COUNT_F
         CREATE
         DROP
         TABLE
@@ -75,7 +80,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         TRX_COMMIT
         TRX_ROLLBACK
         INT_T
-        DATE_T //lydadd
+        DATE_T 
         STRING_T
         FLOAT_T
         HELP
@@ -105,6 +110,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   ConditionSqlNode *                condition;
   Value *                           value;
   enum CompOp                       comp;
+  enum AggrOp                       aggr;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -122,7 +128,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %token <number> NUMBER
 %token <floats> FLOAT
 %token <string> ID
-%token <string> DATE_STR //lydadd
+%token <string> DATE_STR
 %token <string> SSS
 //非终结符
 
@@ -132,7 +138,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <value>               value
 %type <number>              number
 %type <comp>                comp_op
+%type <aggr>                aggr_op
 %type <rel_attr>            rel_attr
+%type <rel_attr>            rel_attr_aggr
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
 %type <value_list>          value_list
@@ -141,6 +149,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <rel_attr_list>       select_attr
 %type <relation_list>       rel_list
 %type <rel_attr_list>       attr_list
+%type <rel_attr_list>       rel_attr_aggr_list
 %type <expression>          expression
 %type <expression_list>     expression_list
 %type <sql_node>            calc_stmt
@@ -342,7 +351,7 @@ type:
     INT_T      { $$=INTS; }
     | STRING_T { $$=CHARS; }
     | FLOAT_T  { $$=FLOATS; }
-    | DATE_T   { $$=DATES; }//lydadd
+    | DATE_T   { $$=DATES; }
     ;
 insert_stmt:        /*insert   语句的语法解析树*/
     INSERT INTO ID VALUES LBRACE value value_list RBRACE 
@@ -516,6 +525,52 @@ select_attr:
     }
     ;
 
+  aggr_op:
+      SUM_F { $$ = AGGR_SUM; }
+    | MAX_F { $$ = AGGR_MAX; }
+    | MIN_F { $$ = AGGR_MIN; }
+    | AVG_F { $$ = AGGR_AVG; }
+    | COUNT_F { $$ = AGGR_COUNT; }
+    ;
+
+  rel_attr_aggr:
+    '*'
+    {
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  ="";
+      $$->attribute_name ="*";
+    }
+    |ID {
+      $$ = new RelAttrSqlNode;
+      $$->attribute_name = $1;
+      free($1);
+    }
+    | ID DOT ID {
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = $1;
+      $$->attribute_name = $3;
+      free($1);
+      free($3);
+    }
+    ;
+
+rel_attr_aggr_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    |COMMA rel_attr_aggr rel_attr_aggr_list {
+      if ($3 != nullptr) {
+        $$ = $3;
+      } else {
+        $$ = new std::vector<RelAttrSqlNode>;
+      }
+      $$->emplace_back(*$2);
+      delete $2;
+    }
+    ;
+
+
 rel_attr:
     ID {
       $$ = new RelAttrSqlNode;
@@ -529,7 +584,24 @@ rel_attr:
       free($1);
       free($3);
     }
-    ;
+    | aggr_op LBRACE rel_attr_aggr rel_attr_aggr_list RBRACE
+    {
+      $$ = $3;
+      $$->aggregation = $1;
+      if($4!=nullptr)
+      {
+        $$->valid=false;
+        delete $4;
+      }
+    }
+    | aggr_op LBRACE RBRACE {
+        $$ = new RelAttrSqlNode;
+        $$->relation_name = "";
+        $$->attribute_name = "";
+        $$->aggregation = $1;
+        $$->valid = false;
+    }             
+    ;    
 
 attr_list:
     /* empty */

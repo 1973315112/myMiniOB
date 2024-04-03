@@ -47,6 +47,7 @@ enum class PhysicalOperatorType
   STRING_LIST,
   DELETE,
   INSERT,
+  AGGREGATE,  ///< 聚合
 };
 
 /**
@@ -73,6 +74,7 @@ public:
   virtual RC close() = 0;
 
   virtual Tuple *current_tuple() = 0;
+  virtual void add_aggregation(const AggrOp aggregation){};
 
   void add_child(std::unique_ptr<PhysicalOperator> oper)
   {
