@@ -166,6 +166,16 @@ public:
    */
   RC insert_record(const char *data, RID *rid);
 
+   /**
+   * @brief 更新一条记录
+   * 
+   * @param record        记录
+   * @param offser        记录偏移量
+   * @param len           记录长度
+   * @param len           插入的值
+   */
+  RC update_record(RID *rid,int offset,int len,Value &value);
+
   /**
    * @brief 数据库恢复时，在指定位置插入数据
    * 
@@ -276,12 +286,24 @@ public:
   RC insert_record(const char *data, int record_size, RID *rid);
 
    /**
+   * @brief 更新一条记录
+   * 
+   * @param record        记录
+   * @param offser        记录偏移量
+   * @param len           记录长度
+   * @param len           插入的值
+   */
+  RC update_record(RID *rid,int offset,int len,Value &value);
+
+
+   /**
    * @brief 数据库恢复时，在指定文件指定位置插入数据
    * 
    * @param data        记录内容
    * @param record_size 记录大小
    * @param rid         要插入记录的指定标识符
    */
+  
   RC recover_insert_record(const char *data, int record_size, const RID &rid);
 
   /**

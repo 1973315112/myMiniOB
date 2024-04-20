@@ -77,13 +77,6 @@ TupleCellSpec::TupleCellSpec(const char *table_name, const char *field_name, con
   }
 }
 
-/*TupleCellSpec::TupleCellSpec(const char *alias)
-{
-  if (alias) {
-    alias_ = alias;
-  }
-}*/
-
 TupleCellSpec::TupleCellSpec(const char *alias,const AggrOp aggr)
 {
   aggr_=aggr;
@@ -101,5 +94,4 @@ TupleCellSpec::TupleCellSpec(const char *alias,const AggrOp aggr)
       alias_=aggr_repr+"("+alias+")";
     }      
   }
-
 }

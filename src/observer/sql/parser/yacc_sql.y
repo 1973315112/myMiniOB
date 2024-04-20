@@ -583,7 +583,7 @@ rel_attr:
       $$->attribute_name = $3;
       free($1);
       free($3);
-    }
+    } 
     | aggr_op LBRACE rel_attr_aggr rel_attr_aggr_list RBRACE
     {
       $$ = $3;

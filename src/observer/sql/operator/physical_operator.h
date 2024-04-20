@@ -47,6 +47,7 @@ enum class PhysicalOperatorType
   STRING_LIST,
   DELETE,
   INSERT,
+  UPDATE,     ///< 更新
   AGGREGATE,  ///< 聚合
 };
 
