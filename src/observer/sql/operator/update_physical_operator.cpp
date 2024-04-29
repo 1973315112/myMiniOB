@@ -10,32 +10,23 @@ UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table,Field field,Value va
 
 RC UpdatePhysicalOperator::open(Trx *trx)
 {
-  if (children_.empty()) {
-    return RC::SUCCESS;
-  }
-
+  if (children_.empty()) return RC::SUCCESS;
   std::unique_ptr<PhysicalOperator> &child = children_[0];
   RC rc = child->open(trx);
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open child operator: %s", strrc(rc));
     return rc;
   }
-
   trx_ = trx;
-
   return RC::SUCCESS;
-
 }
 
 RC UpdatePhysicalOperator::next()
 {
   RC rc = RC::SUCCESS;
-  if (children_.empty()) {
-    return RC::RECORD_EOF;
-  }
+  if (children_.empty()) return RC::RECORD_EOF;
 
   PhysicalOperator *child = children_[0].get();
-//  std::vector<Record> insert_records;
   while (RC::SUCCESS == (rc = child->next())) 
   {
     Tuple *tuple = child->current_tuple();
@@ -46,17 +37,12 @@ RC UpdatePhysicalOperator::next()
     //获取需要更新的record
     RowTuple *row_tuple = static_cast<RowTuple *>(tuple);
     Record &record = row_tuple->record();
-
     //获取fieldmeta的偏移量及长度，确定更新的位置和范围
     const char* field_name=field_.field_name();
     const FieldMeta* field_meta=table_->table_meta().field(field_name);
-    //delect_records.emplace_back(record);
-
     int offset_=field_meta->offset();
     int len_=field_meta->len();
-
     rc=trx_->update_record(table_,record,offset_,len_,value_);
-
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to delete record: %s", strrc(rc));
       return rc;
@@ -67,8 +53,6 @@ RC UpdatePhysicalOperator::next()
 
 RC UpdatePhysicalOperator::close()
 {
-  if (!children_.empty()) {
-    children_[0]->close();
-  }
+  if (!children_.empty()) children_[0]->close();
   return RC::SUCCESS;
 }

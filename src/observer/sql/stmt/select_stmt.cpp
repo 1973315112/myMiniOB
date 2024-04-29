@@ -48,7 +48,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     return RC::INVALID_ARGUMENT;
   }
 
-  // collect tables in `from` statement(收集 SQL 查询中的 FROM 语句所引用的所有表)
+  //收集 SQL 查询中的 FROM 语句所引用的所有表
   std::vector<Table *> tables;
   std::unordered_map<std::string, Table *> table_map;
   for (size_t i = 0; i < select_sql.relations.size(); i++) {
@@ -68,24 +68,27 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     table_map.insert(std::pair<std::string, Table *>(table_name, table));
   }
 
-  // collect query fields in `select` statement(收集 SQL 查询中 SELECT 语句所指定的字段)
+  //收集 SQL 查询中 SELECT 语句所指定的字段
   std::vector<Field> query_fields;
   for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) 
   {
     const RelAttrSqlNode &relation_attr = select_sql.attributes[i];
     AggrOp aggregation_=relation_attr.aggregation;
+  //属性非法
     if(relation_attr.valid==0) return RC::INVALID_ARGUMENT;
+  //表为空且属性为*
 
     if (common::is_blank(relation_attr.relation_name.c_str()) &&
         0 == strcmp(relation_attr.attribute_name.c_str(), "*")) 
     {
-      if(aggregation_!=AggrOp::AGGR_COUNT&&aggregation_!=AggrOp::AGGR_NONE) return RC::INVALID_ARGUMENT;
+      //如果聚合是cout(*),正确设置;如果不是cout(*)且聚合（*）聚合错误
       if(aggregation_==AggrOp::AGGR_COUNT) aggregation_=AggrOp::AGGR_COUNT_ALL;
+      else if(aggregation_!=AggrOp::AGGR_NONE) return RC::INVALID_ARGUMENT;
       for (Table *table : tables) 
       {
         wildcard_fields(table, query_fields,aggregation_);
       }        
-    } 
+    }
     else if (!common::is_blank(relation_attr.relation_name.c_str())) 
     {
       const char *table_name = relation_attr.relation_name.c_str();
@@ -147,8 +150,8 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
       }
 
       const char *field_name = relation_attr.attribute_name.c_str();
+      
       AggrOp aggregation_=relation_attr.aggregation;
-
       query_fields.push_back(Field(table,field_meta,aggregation_));
     }
   }

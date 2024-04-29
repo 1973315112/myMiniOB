@@ -62,26 +62,7 @@ Value::Value(const char *s, int len /*= 0*/)
 Value::Value(const char *date, int len, int flag)
 {
   int val=0,year=0,month=0,day=0;
-  flag=1;
-  for(int i=0;i<=len-1;i++)
-  {
-    if(date[i]>='0'&&date[i]<='9')
-    {
-      switch(flag)
-      {
-        case 1:
-          year=year*10+date[i]-'0';
-          break;
-        case 2:
-          month=month*10+date[i]-'0';
-          break;
-        case 3:
-          day=day*10+date[i]-'0';
-          break;    
-      }            
-    }
-    else flag++;
-  }
+  sscanf(date,"%d-%d-%d",&year,&month,&day);
   val=year*10000+month*100+day;
   set_date(val);
 }
@@ -216,7 +197,8 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
-  if (this->attr_type_ == other.attr_type_) {
+  if (this->attr_type_ == other.attr_type_) 
+  {
     switch (this->attr_type_) {
       case INTS: {
         return common::compare_int((void *)&this->num_value_.int_value_, (void *)&other.num_value_.int_value_);
@@ -240,13 +222,42 @@ int Value::compare(const Value &other) const
         LOG_WARN("unsupported type: %d", this->attr_type_);
       }
     }
-  } else if (this->attr_type_ == INTS && other.attr_type_ == FLOATS) {
+  } 
+  else if (this->attr_type_ == INTS && other.attr_type_ == FLOATS) 
+  {
     float this_data = this->num_value_.int_value_;
     return common::compare_float((void *)&this_data, (void *)&other.num_value_.float_value_);
-  } else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) {
+  } 
+  else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) 
+  {
     float other_data = other.num_value_.int_value_;
     return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other_data);
   }
+
+  else if (this->attr_type_ == CHARS && other.attr_type_ == INTS) 
+    return common::compare_str_with_int(
+      (void *)this->str_value_.c_str(),
+      this->str_value_.length(),
+      (void *)&other.num_value_.int_value_
+      );
+  else if (this->attr_type_ == INTS && other.attr_type_ == CHARS) 
+    return common::compare_str_with_int(
+      (void *)other.str_value_.c_str(),
+      other.str_value_.length(),
+      (void *)&this->num_value_.int_value_
+      );
+  else if (this->attr_type_ == CHARS && other.attr_type_ == FLOATS) 
+    return common::compare_str_with_float(
+      (void *)this->str_value_.c_str(),
+      this->str_value_.length(),
+      (void *)&other.num_value_.float_value_
+      );
+  else if (this->attr_type_ == FLOATS && other.attr_type_ == CHARS) 
+    return common::compare_str_with_float(
+      (void *)other.str_value_.c_str(),
+      other.str_value_.length(),
+      (void *)&this->num_value_.int_value_
+      );
   LOG_WARN("not supported");
   return -1;  // TODO return rc?
 }

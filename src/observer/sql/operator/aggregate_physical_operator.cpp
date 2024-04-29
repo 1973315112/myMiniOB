@@ -25,14 +25,12 @@ RC AggregatePhysicalOperator::open(Trx *trx)
 
 RC AggregatePhysicalOperator::next()
 {
-   
-  if(result_tuple_.cell_num()>0) {return RC::RECORD_EOF;}  //已聚合
+  if(result_tuple_.cell_num()>0) return RC::RECORD_EOF;  //已聚合
   
   RC rc = RC::SUCCESS;
   PhysicalOperator *oper = children_[0].get();
   
-  int count=0;
-  int opnumber=(int)aggregations_.size();
+  int count=0,opnumber=(int)aggregations_.size();
   std::vector<Value> result_cells(opnumber);
   
   while (RC::SUCCESS == (rc = oper->next())) //对应count个元组
@@ -45,83 +43,25 @@ RC AggregatePhysicalOperator::next()
       Value cell;
       rc=tuple->cell_at(cell_idx,cell);
       AttrType attr_type=cell.attr_type();
-      if(count==1&& (aggregation==AGGR_MIN||aggregation==AGGR_MAX) )
+      if(count==1) 
       {
-      	switch(attr_type)
-      	{
-      		case INTS:
-      			result_cells[cell_idx].set_int(cell.get_int());
-      		break;
-        	case FLOATS:
-        		result_cells[cell_idx].set_float(cell.get_float());
-        	break;        			
-        	case CHARS:
-        		result_cells[cell_idx].set_string(cell.get_string().data());
-        	break;    			
-        	case DATES:
-        		result_cells[cell_idx].set_date(cell.get_date());
-        	break;        			
-		      default:
-		        return RC::UNIMPLENMENT;        			
-		    }
-		  }
-
+        result_cells[cell_idx].set_value(cell);
+        continue;
+      }
+      
       switch (aggregation)
       {
         case AggrOp::AGGR_SUM:
-          if(count==1) result_cells[cell_idx].set_float(0);
+        case AggrOp::AGGR_AVG:
           if(attr_type==AttrType::INTS || attr_type==AttrType::FLOATS) result_cells[cell_idx].set_float(result_cells[cell_idx].get_float()+cell.get_float());
         break;
         case AggrOp::AGGR_MIN:
-        	if(result_cells[cell_idx].compare(cell)>0)
-        	{
-	        	switch(attr_type)
-	        	{
-	        	  case INTS:
-	        			result_cells[cell_idx].set_int(cell.get_int());
-	        		break;
-	        	  case FLOATS:
-	        			result_cells[cell_idx].set_float(cell.get_float());
-	        		break;        			
-	        	  case CHARS:
-	        			result_cells[cell_idx].set_string(cell.get_string().data());
-	        		break;    			
-	        	  case DATES:
-	        			result_cells[cell_idx].set_date(cell.get_date());
-	        		break;        			
-			        default:
-			          return RC::UNIMPLENMENT;        			
-				    }        		
-			    }
+        	if(result_cells[cell_idx].compare(cell)>0) result_cells[cell_idx].set_value(cell);
         break;
         case AggrOp::AGGR_MAX:
-          if(result_cells[cell_idx].compare(cell)<0)
-			    {
-	       	  switch(attr_type)
-	       	  {
-	       		  case INTS:
-	       				result_cells[cell_idx].set_int(cell.get_int());
-	       			break;
-	       		  case FLOATS:
-	       				result_cells[cell_idx].set_float(cell.get_float());
-	       			break;        			
-	       		  case CHARS:
-	       				result_cells[cell_idx].set_string(cell.get_string().data());
-	       			break;    			
-	       		  case DATES:
-	       				result_cells[cell_idx].set_date(cell.get_date());
-	       			break;        			
-			        default:
-			          return RC::UNIMPLENMENT;        			
-				    }	
-			    }            
-        break;
-        case AggrOp::AGGR_AVG:
-          if(count==1) result_cells[cell_idx].set_float(0);
-          if(attr_type==AttrType::INTS || attr_type==AttrType::FLOATS) result_cells[cell_idx].set_float(result_cells[cell_idx].get_float()+cell.get_float());
+          if(result_cells[cell_idx].compare(cell)<0) result_cells[cell_idx].set_value(cell);           
         break;
         case AggrOp::AGGR_COUNT:
-          break;
         case AggrOp::AGGR_COUNT_ALL:
           break;                                                                          
         default:
@@ -132,14 +72,12 @@ RC AggregatePhysicalOperator::next()
   for(int i=0;i<opnumber;i++)
   {
     const AggrOp aggregation=aggregations_[i];
-  	if(aggregation==AggrOp::AGGR_AVG) result_cells[i].set_float(1.0*result_cells[i].get_float()/count);
-    else if(aggregation==AggrOp::AGGR_COUNT||aggregation==AggrOp::AGGR_COUNT_ALL) result_cells[i].set_float(count);
-  }  
+  	if(aggregation==AggrOp::AGGR_AVG) result_cells[i].set_float(result_cells[i].get_float()/count);
+    else if(aggregation==AggrOp::AGGR_COUNT||aggregation==AggrOp::AGGR_COUNT_ALL) result_cells[i].set_int(count);
+  }
   
   if (rc == RC::RECORD_EOF) rc=RC::SUCCESS;
-
   result_tuple_.set_cells(result_cells);
-
   return rc;
 }
 

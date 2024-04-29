@@ -115,6 +115,23 @@ struct SelectSqlNode
 };
 
 /**
+ * @brief 描述一个join语句
+ * @ingroup SQLParser
+ * @details join的表名和条件
+ * 一个select语句由三部分组成，分别是select, from, where。
+ * select部分表示要查询的字段，from部分表示要查询的表，where部分表示查询的条件。
+ * 比如 from 中可以是多个表，也可以是另一个查询语句，这里仅仅支持表，也就是 relations。
+ * where 条件 conditions，这里表示使用AND串联起来多个条件。正常的SQL语句会有OR，NOT等，
+ * 甚至可以包含复杂的表达式。
+ */
+
+struct JoinSqlNode
+{
+  std::vector<std::string>        relations;     ///< 查询的表
+  std::vector<ConditionSqlNode>   conditions;    ///< 查询条件
+};
+
+/**
  * @brief 算术表达式计算的语法树
  * @ingroup SQLParser
  */

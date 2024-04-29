@@ -45,7 +45,8 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update_sql, Stmt *&stmt)
   // 确认待更新属性的存在
   const FieldMeta *field_meta =table->table_meta().field(update_sql.attribute_name.c_str());
   if (nullptr == field_meta) {
-    LOG_WARN("no such field.field=%s.%s.%s",db->name(),table->name(),update_sql.attribute_name.c_str());
+    LOG_WARN("no such field.field=%s.%s.%s",
+      db->name(),table->name(),update_sql.attribute_name.c_str());
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -53,7 +54,8 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update_sql, Stmt *&stmt)
   const AttrType field_type = field_meta->type();
   const AttrType value_type = update_sql.value.attr_type();
   if (field_type != value_type) {  // TODO try to convert the value type to field type
-    LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",table_name, field_meta->name(), field_type, value_type);
+    LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
+      table_name, field_meta->name(), field_type, value_type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
 
@@ -76,7 +78,7 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update_sql, Stmt *&stmt)
   }
 
   Field field=Field(table,field_meta);
-  Value* value = new Value(update_sql.value);//.data();
+  Value* value = new Value(update_sql.value);
   stmt = new UpdateStmt(table,field,value,filter_stmt);
   return RC::SUCCESS;
 }

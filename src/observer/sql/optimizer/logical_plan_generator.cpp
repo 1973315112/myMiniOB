@@ -146,7 +146,6 @@ RC LogicalPlanGenerator::create_plan(
   }
   else logical_operator.swap(project_oper);
 
-  //logical_operator.swap(project_oper);
   return RC::SUCCESS;
 }
 
@@ -226,36 +225,26 @@ RC LogicalPlanGenerator::create_plan(
 RC LogicalPlanGenerator::create_plan(
     UpdateStmt *update_stmt, unique_ptr<LogicalOperator> &logical_operator)
 {
+  //table_get算子,filter算子,update算子的创建与连接
   Table *table = update_stmt->table();
-
-  //首先创建select和filter算子
   std::vector<Field> fields;
   fields.emplace_back(update_stmt->field());
   unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, false));
-
-  //过滤算子
   unique_ptr<LogicalOperator> filter_oper;
   FilterStmt *filter_stmt = update_stmt->filter_stmt();
   RC rc = create_plan(filter_stmt, filter_oper);
   if (rc != RC::SUCCESS) {
     return rc;
   }
-
-  
   Field field=update_stmt->field();
-
   Value value=*(update_stmt->value());
-
   unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table,field,value));
-
-  if(filter_oper){
+  if(filter_oper)
+  {
     filter_oper->add_child(std::move(table_get_oper));
     update_oper->add_child(std::move(filter_oper));
   }
-  else{
-    update_oper->add_child(std::move(table_get_oper));
-  }
-
+  else update_oper->add_child(std::move(table_get_oper));
   logical_operator = std::move(update_oper);
   return rc;
 }
