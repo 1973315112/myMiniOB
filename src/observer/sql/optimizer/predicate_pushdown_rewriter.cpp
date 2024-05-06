@@ -22,53 +22,44 @@ See the Mulan PSL v2 for more details. */
 RC PredicatePushdownRewriter::rewrite(std::unique_ptr<LogicalOperator> &oper, bool &change_made)
 {
   RC rc = RC::SUCCESS;
-  if (oper->type() != LogicalOperatorType::PREDICATE) {
-    return rc;
-  }
-
-  if (oper->children().size() != 1) {
-    return rc;
-  }
-
+  //检查：现在的算子是谓词时需要下推;
+  if (oper->type()!=LogicalOperatorType::PREDICATE) return rc;
+  //检查：谓词节点有1个子节点时需要下推
+  if (oper->children().size()!=1) return rc;
+  //检查：当Predicate结点的子节点是Join或者TableGet时，需要进行下推 
   std::unique_ptr<LogicalOperator> &child_oper = oper->children().front();
   if ( child_oper->type()!=LogicalOperatorType::TABLE_GET && child_oper->type()!=LogicalOperatorType::JOIN ) return rc;
-
-  //auto table_get_oper = static_cast<TableGetLogicalOperator *>(child_oper.get());
-
+  //检查：当前谓词的表达式只能是1个联结表达式
   std::vector<std::unique_ptr<Expression>> &predicate_oper_exprs = oper->expressions();
-  if (predicate_oper_exprs.size() != 1) {
-    return rc;
-  }
+  if (predicate_oper_exprs.size() != 1) return rc;
 
+  //分离可下推的表达式并存在pushdown_exprs
   std::unique_ptr<Expression> &predicate_expr = predicate_oper_exprs.front();
   std::vector<std::unique_ptr<Expression>> pushdown_exprs;
   rc = get_exprs_can_pushdown(predicate_expr, pushdown_exprs);
-  if (rc != RC::SUCCESS) {
+  if (rc != RC::SUCCESS) 
+  {
     LOG_WARN("failed to get exprs can pushdown. rc=%s", strrc(rc));
     return rc;
   }
-
-
-  //到这里，所有可以被下推的表达式（即等值连接两端至少存在一个Field的表达式）都保存在pushdown_exoers里，且已经从原来的逻辑计划中删除。
   if (pushdown_exprs.empty()) return rc;
-  change_made=false;
+  
   //开始pushdown
+  change_made=false;
   if(child_oper->type()==LogicalOperatorType::TABLE_GET)
-  {
-    //predicate的子算子是table_get
+  { //predicate的子算子是table_get
     auto table_get_oper=static_cast<TableGetLogicalOperator*>(child_oper.get());
     change_made=true;
     table_get_oper->set_predicates(std::move(pushdown_exprs));
   }
   else if(child_oper->type()==LogicalOperatorType::JOIN)
-  {
-    //predicate的子算子是join
+  { //predicate的子算子是join
     auto join_oper=static_cast<JoinLogicalOperator*>(child_oper.get());
     auto left_join_child_type=join_oper->children()[0]->type();
     auto right_join_child_type=join_oper->children()[1]->type();
 
     if(left_join_child_type==LogicalOperatorType::JOIN && right_join_child_type==LogicalOperatorType::TABLE_GET)
-    {//左子算子是join，右子算子是table_get的话，保留与右表有关系的谓词，其他谓词下推到左join算子上面。
+    { //左子算子是join，右子算子是table_get的话，保留与右表有关系的谓词，其他谓词下推到左join算子上面。
       auto right_table_get_oper=static_cast<TableGetLogicalOperator*>(join_oper->children()[1].get());
       const char* right_table_name=right_table_get_oper->table()->name();
       std::vector<std::unique_ptr<Expression>> right_child_expers;
@@ -78,27 +69,27 @@ RC PredicatePushdownRewriter::rewrite(std::unique_ptr<LogicalOperator> &oper, bo
       {
         auto comparison_expr=static_cast<ComparisonExpr*>((*it).get());
         bool related_to_right_table=false;
+
         if(comparison_expr->left()->type()==ExprType::FIELD)
         {
           auto left_expr=static_cast<FieldExpr*>(comparison_expr->left().get());
-          related_to_right_table=related_to_right_table || ( strcmp(left_expr->table_name(),right_table_name)==0 );
+          if(strcmp(left_expr->table_name(),right_table_name)==0) related_to_right_table=true;
         }
         if(comparison_expr->right()->type()==ExprType::FIELD)
         {
           auto right_expr=static_cast<FieldExpr*>(comparison_expr->right().get());
-          related_to_right_table=related_to_right_table || ( strcmp(right_expr->table_name(),right_table_name)==0 );
+          if(strcmp(right_expr->table_name(),right_table_name)==0) related_to_right_table=true;
         }
 
         //当前it指代的表达式与右表有关系，应当保留
-        if(related_to_right_table) right_child_expers.push_back(std::move(*it));
-        if(!(*it)) pushdown_exprs.erase(it);
+        if(related_to_right_table) 
+        {
+          right_child_expers.push_back(std::move(*it));
+          it=pushdown_exprs.erase(it);
+        }
         else it++;
       }
     
-
-
-
-
       //pushdown里存的是需要下推到左join前的表达式，right_child_expers存的是需要保留的与右表有关系的表达式
       //处理右表
       predicate_expr=std::unique_ptr<Expression>(new ConjunctionExpr(ConjunctionExpr::Type::AND,right_child_expers));
@@ -113,20 +104,17 @@ RC PredicatePushdownRewriter::rewrite(std::unique_ptr<LogicalOperator> &oper, bo
     }
     else
     {
-      //左右算子都是table_get的话，不需要pushdown
-      //但是当前predicated的条件已经都拿出来了，需要再存回去
+      //左右算子都是table_get的话，不需要pushdown，将pushdown_exprs存回predicate_expr
       if(pushdown_exprs.size()==1) predicate_expr=std::move(pushdown_exprs.front());
       else predicate_expr=std::unique_ptr<Expression>(new ConjunctionExpr(ConjunctionExpr::Type::AND,pushdown_exprs));
     }
   }
 
-
-  if (predicate_expr==nullptr) // 所有的表达式都下推到了下层算子
+  if(predicate_expr==nullptr) //所有表达式都被下推，由于无法删除谓词算子，置为空表达式
   {
-    // 这个predicate operator其实就可以不要了。但是这里没办法删除，弄一个空的表达式吧
     LOG_TRACE("all expressions of predicate operator were pushdown to table get operator, then make a fake one");
     Value value((bool)true);
-    predicate_expr = std::unique_ptr<Expression>(new ValueExpr(value));
+    predicate_expr=std::unique_ptr<Expression>(new ValueExpr(value));
   }
   return rc;
 }
