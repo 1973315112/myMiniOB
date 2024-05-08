@@ -76,7 +76,7 @@ int compare_str_with_int(void* arg1,int arg1_max_length,void* arg2)
   std::istringstream In_str1(str1);
   float v1=0;
   In_str1>>v1;
-  std::cout<<"v1::"<<v1<<std::endl;
+  //std::cout<<"v1::"<<v1<<std::endl;
   return compare_float((void *)&v1,(void *)&v2);
   /*//如果是合法数字
   if(In_str1.eof()&&!In_str1.fail()) 
@@ -106,7 +106,7 @@ int compare_str_with_float(void* arg1,int arg1_max_length,void* arg2)
   std::istringstream In_str1(str1);
   float v1=0;
   In_str1>>v1;
-  std::cout<<"v1::"<<v1<<std::endl;
+  //std::cout<<"v1::"<<v1<<std::endl;
   return compare_float((void *)&v1,(void *)&v2);
   /*//如果是合法数字
   if(In_str1.eof()&&!In_str1.fail()) 
