@@ -77,11 +77,10 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   //属性非法
     if(relation_attr.valid==0) return RC::INVALID_ARGUMENT;
   //表为空且属性为*
-
     if (common::is_blank(relation_attr.relation_name.c_str()) &&
         0 == strcmp(relation_attr.attribute_name.c_str(), "*")) 
     {
-      //如果聚合是cout(*),正确设置;如果不是cout(*)且聚合（*）聚合错误
+      //如果聚合是cout(*),正确设置;如果不是cout(*)且聚合（*）,聚合错误
       if(aggregation_==AggrOp::AGGR_COUNT) aggregation_=AggrOp::AGGR_COUNT_ALL;
       else if(aggregation_!=AggrOp::AGGR_NONE) return RC::INVALID_ARGUMENT;
       for (Table *table : tables) 

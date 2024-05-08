@@ -130,14 +130,17 @@ RC LogicalPlanGenerator::create_plan(
   }
 
   bool aggr_flag =false;
+  bool aggr_none =false;
   for(auto field:all_fields){
-    if(field.aggregation()!=AggrOp::AGGR_NONE)
+    if(field.aggregation()==AggrOp::AGGR_NONE) aggr_none =true;
+    else aggr_flag=true;
+    /*if(field.aggregation()!=AggrOp::AGGR_NONE)
     {
       aggr_flag=true;
-      break;
-    }
+      //break;
+    }*/
   }
-
+  if(aggr_flag&&aggr_none) return RC::FIXED;
   if(aggr_flag)
   {
     unique_ptr<LogicalOperator> aggregate_oper(new AggregateLogicalOperator(all_fields));
