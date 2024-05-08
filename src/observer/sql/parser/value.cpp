@@ -241,7 +241,7 @@ int Value::compare(const Value &other) const
       (void *)&other.num_value_.int_value_
       );
   else if (this->attr_type_ == INTS && other.attr_type_ == CHARS) 
-    return common::compare_str_with_int(
+    return -common::compare_str_with_int(
       (void *)other.str_value_.c_str(),
       other.str_value_.length(),
       (void *)&this->num_value_.int_value_
@@ -253,7 +253,7 @@ int Value::compare(const Value &other) const
       (void *)&other.num_value_.float_value_
       );
   else if (this->attr_type_ == FLOATS && other.attr_type_ == CHARS) 
-    return common::compare_str_with_float(
+    return -common::compare_str_with_float(
       (void *)other.str_value_.c_str(),
       other.str_value_.length(),
       (void *)&this->num_value_.int_value_
