@@ -67,4 +67,31 @@ int compare_string(void *arg1, int arg1_max_length, void *arg2, int arg2_max_len
   }
   return 0;
 }
+
+int compare_str_with_int(void* arg1,int arg1_max_length,void* arg2)
+{
+  const char *s1 = (const char *)arg1;
+  std::string str1(s1);
+  std::istringstream In_str1(str1);
+  float v1;
+  In_str1>>v1;
+  if((In_str1.eof()&&!In_str1.fail())==0) return -1;   
+  float v2=*(int*)arg2;
+  return compare_float((void *)&v1,(void *)&v2);
+}
+
+int compare_str_with_float(void* arg1,int arg1_max_length,void* arg2)
+{
+  const char *s1 = (const char *)arg1;
+  std::string str1(s1);
+  std::istringstream In_str1(str1);
+  float v1;
+  In_str1>>v1;
+  if((In_str1.eof()&&!In_str1.fail())==0) return -1;   
+  float v2=*(float*)arg2;
+  return compare_float((void *)&v1,(void *)&v2);
+}
+
+
+
 } // namespace common

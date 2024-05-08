@@ -233,11 +233,31 @@ int Value::compare(const Value &other) const
     float other_data = other.num_value_.int_value_;
     return common::compare_float((void *)&this->num_value_.float_value_, (void *)&other_data);
   }
-  else
-  {//如果没有明确的比较方法，将所有类型转化为字符串进行比较
-    std::string arg1=this->get_string(),arg2=other.get_string();    
-    return common::compare_string((void *)arg1.c_str(),arg1.length(),(void *)arg2.c_str(),arg2.length());
-  }
+  //字符串与数值的大小比较
+  else if (this->attr_type_ == CHARS && other.attr_type_ == INTS) 
+    return common::compare_str_with_int(
+      (void *)this->str_value_.c_str(),
+      this->str_value_.length(),
+      (void *)&other.num_value_.int_value_
+      );
+  else if (this->attr_type_ == INTS && other.attr_type_ == CHARS) 
+    return common::compare_str_with_int(
+      (void *)other.str_value_.c_str(),
+      other.str_value_.length(),
+      (void *)&this->num_value_.int_value_
+      );
+  else if (this->attr_type_ == CHARS && other.attr_type_ == FLOATS) 
+    return common::compare_str_with_float(
+      (void *)this->str_value_.c_str(),
+      this->str_value_.length(),
+      (void *)&other.num_value_.float_value_
+      );
+  else if (this->attr_type_ == FLOATS && other.attr_type_ == CHARS) 
+    return common::compare_str_with_float(
+      (void *)other.str_value_.c_str(),
+      other.str_value_.length(),
+      (void *)&this->num_value_.int_value_
+      );
   LOG_WARN("not supported");
   return -1;  // TODO return rc?
 }
