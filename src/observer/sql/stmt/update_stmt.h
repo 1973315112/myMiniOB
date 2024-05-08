@@ -52,11 +52,6 @@ public:
   {
     return value_;
   }
-  /*int value_amount() const
-  {
-    return value_amount_;
-  }*/
-
   FilterStmt* filter_stmt() const{
     return filter_stmt_;
   }
@@ -65,7 +60,5 @@ private:
   Table *table_ = nullptr;
   Field field_;
   Value *value_ = nullptr;
-  //int value_amount_ = 0;
   FilterStmt *filter_stmt_ = nullptr;
-
 };
