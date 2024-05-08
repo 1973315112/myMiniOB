@@ -71,25 +71,45 @@ int compare_string(void *arg1, int arg1_max_length, void *arg2, int arg2_max_len
 int compare_str_with_int(void* arg1,int arg1_max_length,void* arg2)
 {
   const char *s1 = (const char *)arg1;
+  float v2=*(int*)arg2;
   std::string str1(s1);
   std::istringstream In_str1(str1);
   float v1;
   In_str1>>v1;
-  if((In_str1.eof()&&!In_str1.fail())==0) return -1;   
-  float v2=*(int*)arg2;
-  return compare_float((void *)&v1,(void *)&v2);
+  //如果是合法数字
+  if(In_str1.eof()&&!In_str1.fail()) return compare_float((void *)&v1,(void *)&v2);
+  //否则
+  std::string s2 = std::to_string(v2);
+  int arg2_max_length=s2.length();
+  char S2[100];
+  for(int i=0;i<arg2_max_length;i++)
+  {
+    S2[i]=s2[i];
+  }
+  S2[arg2_max_length]='\0';
+  return compare_string(arg1,arg1_max_length,S2,arg2_max_length);
 }
 
 int compare_str_with_float(void* arg1,int arg1_max_length,void* arg2)
 {
   const char *s1 = (const char *)arg1;
+  float v2=*(float*)arg2;
   std::string str1(s1);
   std::istringstream In_str1(str1);
   float v1;
   In_str1>>v1;
-  if((In_str1.eof()&&!In_str1.fail())==0) return -1;   
-  float v2=*(float*)arg2;
-  return compare_float((void *)&v1,(void *)&v2);
+  //如果是合法数字
+  if(In_str1.eof()&&!In_str1.fail()) return compare_float((void *)&v1,(void *)&v2);
+  //否则
+  std::string s2 = std::to_string(v2);
+  int arg2_max_length=s2.length();
+  char S2[100];
+  for(int i=0;i<arg2_max_length;i++)
+  {
+    S2[i]=s2[i];
+  }
+  S2[arg2_max_length]='\0';
+  return compare_string(arg1,arg1_max_length,S2,arg2_max_length);
 }
 
 
