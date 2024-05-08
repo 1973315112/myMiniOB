@@ -76,8 +76,15 @@ int compare_str_with_int(void* arg1,int arg1_max_length,void* arg2)
   std::istringstream In_str1(str1);
   float v1;
   In_str1>>v1;
-  //如果是合法数字
-  if(In_str1.eof()&&!In_str1.fail()) return compare_float((void *)&v1,(void *)&v2);
+  std::cout<<"v1::"<<v1<<std::endl;
+  /*//如果是合法数字
+  if(In_str1.eof()&&!In_str1.fail()) 
+  {
+    std::cout<<"v1:"<<v1<<std::endl;
+    return compare_float((void *)&v1,(void *)&v2);
+
+  }*/
+
   //否则
   std::string s2 = std::to_string(v2);
   int arg2_max_length=s2.length();
@@ -98,8 +105,14 @@ int compare_str_with_float(void* arg1,int arg1_max_length,void* arg2)
   std::istringstream In_str1(str1);
   float v1;
   In_str1>>v1;
-  //如果是合法数字
-  if(In_str1.eof()&&!In_str1.fail()) return compare_float((void *)&v1,(void *)&v2);
+  //std::cout<<"v1::"<<v1<<std::endl;
+  /*//如果是合法数字
+  if(In_str1.eof()&&!In_str1.fail()) 
+  {
+    std::cout<<"v1:"<<v1<<std::endl;
+    return compare_float((void *)&v1,(void *)&v2);
+
+  }*/
   //否则
   std::string s2 = std::to_string(v2);
   int arg2_max_length=s2.length();
